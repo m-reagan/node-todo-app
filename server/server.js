@@ -7,6 +7,7 @@ const _ = require('lodash');
 var {mongoose} = require('./db/mongoose.connect');
 var {Todo} = require('./model/todo');
 var {User} = require('./model/user');
+var {authenticate} = require('./middleware/authenticate');
 
 var app = express();
 var port = process.env.PORT;
@@ -80,7 +81,6 @@ app.patch('/todos/:id', (req, res) => {
     body.completedAt = null;
   }
 
-  console.log(body);
   Todo.findByIdAndUpdate(id,{$set: body},{new:true}).then((todo) => {
       if(!todo){
         res.send(404).send();
@@ -93,7 +93,6 @@ app.patch('/todos/:id', (req, res) => {
 });
 
 app.post('/users', (req, res) => {
-  console.log('inside post users');
   var user = new User(req.body);
   user.save().then(() => {
      return user.generateAuthToken();
@@ -102,6 +101,10 @@ app.post('/users', (req, res) => {
   }).catch((e) => {
      res.status(400).send(e);
   });
+});
+
+app.get('/users/me', authenticate, (req, res) => {
+    res.send(req.user);
 });
 
 app.listen(port, () => {

@@ -4,25 +4,12 @@ const {ObjectID} = require('mongodb');
 
 var {app} = require ('./../server');
 var {Todo} = require ('./../model/todo');
+var {todos, users, populateTodos, populateUsers} = require ('./seed/seed');
 
-var todos = [{
-  _id: new ObjectID(),
-  text: 'First test do'
-},
-{
-  _id: new ObjectID(),
-  text: 'Second test todo'
-}];
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
-beforeEach(done => {
-  Todo.remove().then(result => {
-    Todo.insertMany(todos);
-  }).then (result => {
-    done();
-  });
-});
-
-describe('Testing todo POST api', () => {
+describe('POST /todos', () => {
 
   it('Testing todo POST api', (done) => {
     request(app)
@@ -48,7 +35,7 @@ describe('Testing todo POST api', () => {
   });
 });
 
-describe ('Test Todo GET API ', () => {
+describe ('GET /Todos', () => {
   it('Test GET all todos', done => {
     request(app)
      .get('/todos')
@@ -85,7 +72,7 @@ describe ('Test Todo GET API ', () => {
 
 });
 
-describe('Testing Todos DELETE API', () => {
+describe('DELETE /todo/:id', () => {
   it('Should delete todo if id exist', (done) => {
     request(app)
       .delete(`/todos/${todos[0]._id.toHexString()}`)
@@ -115,7 +102,7 @@ describe('Testing Todos DELETE API', () => {
 
 });
 
-describe('Testing PATCH todo api', () => {
+describe('PATCH /todo/:id', () => {
 
   var id = todos[0]._id.toHexString();
 
@@ -171,4 +158,49 @@ describe('Testing PATCH todo api', () => {
       });
   });
 
+});
+
+describe('POST /users', () => {
+    it('Should create user if valid email is provided', (done) => {
+      var email = "andres@gmail.com";
+      var password = "password123";
+
+       request(app)
+        .post('/users')
+        .send({email,password})
+        .expect(200)
+        .expect( (res) => {
+          expect(res.body._id).toExist();
+          expect(res.body.email).toBe(email);
+          expect(res.header['x-auth']).toExist();
+        })
+        .end(done);
+    });
+
+    it('Should not create user if email is invalid', (done) => {
+      var email = "andre";
+      var password = "password123";
+
+       request(app)
+        .post('/users')
+        .send({email,password})
+        .expect(400)
+        .expect( (res) => {
+          expect(res.body._id).toNotExist();
+          expect(res.header['x-auth']).toNotExist();
+        })
+        .end(done);
+    });
+
+    it('Should not create user if email is in use', (done) => {
+       request(app)
+        .post('/users')
+        .send({email: users[0].email,password: users[0].password})
+        .expect(400)
+        .expect( (res) => {
+          expect(res.body._id).toNotExist();
+          expect(res.header['x-auth']).toNotExist();
+        })
+        .end(done);
+    });
 });
