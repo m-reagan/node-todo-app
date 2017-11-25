@@ -4,6 +4,7 @@ const {ObjectID} = require('mongodb');
 
 var {app} = require ('./../server');
 var {Todo} = require ('./../model/todo');
+var {User} = require ('./../model/user');
 var {todos, users, populateTodos, populateUsers} = require ('./seed/seed');
 
 beforeEach(populateUsers);
@@ -203,4 +204,50 @@ describe('POST /users', () => {
         })
         .end(done);
     });
+});
+
+describe('POST /users/login', () =>{
+  it('should send auth token if credentials are right', (done) => {
+    request(app)
+      .post('/users/login')
+      .send({
+        email: users[1].email,
+        password: users[1].password
+      })
+      .expect(200)
+      .end((err,res) => {
+        if(err){
+          return done(err);
+        }
+        expect(res.header['x-auth']).toExist();
+
+        User.findOne({email: users[1].email}).then( (user) => {
+          expect(user.tokens[0]).toInclude({
+            access:'auth',
+            token: res.headers['x-auth']
+          });
+          done()
+        }).catch ( (e) => done(e));
+      })
+  });
+});
+
+describe('DELETE /users/logout', () =>{
+  it('should delete token if authenticated', (done) => {
+    request(app)
+      .delete('/users/logout')
+      .set('x-auth',users[0].tokens[0].token)
+      .expect(200)
+      .end((err,res) => {
+        if(err){
+          return done(err);
+        }
+        expect(res.header['x-auth']).toNotExist();
+
+        User.findOne({email: users[0].email}).then( (user) => {
+          expect(user.tokens.length).toBe(0);
+          done();
+        }).catch ( (e) => done(e));
+      })
+  });
 });

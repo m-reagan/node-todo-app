@@ -24,7 +24,7 @@ const users = [
      tokens: [
        {
          access: 'auth',
-         token: jwt.sign({_id: userOneId, access: 'auth'}, 'testSalt').toString()
+         token: jwt.sign({_id: userOneId, access: 'auth'}, 'salt').toString()
        }
      ]
   },
